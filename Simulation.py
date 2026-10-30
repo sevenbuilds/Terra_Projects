@@ -63,6 +63,7 @@ def spring_points(a, b, loop=7, coils=9, lead=0.10, width=20.0, samples= 240):
     vector = np.array([b, HEIGHT])
     d = vector - a
     length = np.linalg.norm(d)
+    mid_point = (a + vector) / 2
     unit_vector = d / length
     normal = np.array([-unit_vector[1], unit_vector[0]])
     start =  a + (unit_vector * length * lead)
@@ -75,7 +76,7 @@ def spring_points(a, b, loop=7, coils=9, lead=0.10, width=20.0, samples= 240):
         side = width * math.sin(phase)
         pts.append(start + unit_vector * along + normal * side)
     pts.append(vector)
-    return pts
+    return pts, mid_point
 
 def lerp_color(a, b, t):
     return tuple(a[i] + (b[i] - a[i]) * t for i in range(3))
@@ -104,11 +105,13 @@ def main():
     title = py.display.set_caption("Horizontal spring simulation.")
     clock = py.time.Clock()
     font_small = py.font.SysFont(("Consolas"),16) 
+    font_smaller = py.font.SysFont(("Consolas"),13)
     font_big = py.font.SysFont(("Consolas"),32)
     m_font = font_big.render("m",True,(225, 245, 238))
     m_value = font_small.render(f"{math.ceil(mass)}Kg", True, white)
     equilibrium_text = font_small.render("Equilibrium", True, TEXT_C)
     hint = font_small.render("drag the mass | R reset | F forces | Esc quit", True, TEXT_C)
+    spring_formula = font_smaller.render("F = -Kx", True, TEXT_C)
 
     slider_start = 40
     slider_end = 330
@@ -238,7 +241,7 @@ def main():
 
         #---- spring ----
         color = spring_color(pos)
-        pts = spring_points(ANCHOR, pos)
+        pts, mid_point = spring_points(ANCHOR, pos)
         py.draw.lines(screen, SPRING_OUTLINE, False, pts, 8)
         py.draw.lines(screen, color, False, pts, 5)
         py.draw.aalines(screen, lerp_color(color, (255,255,255), 0.45), False, pts)
@@ -266,13 +269,8 @@ def main():
         #---- tuning slider ----
         py.draw.rect(border,(0,0,0,85), (0,0, 350, 190), border_radius=20)
         screen.blit(border, (20, H - 200))
-        # def draw_slidebar(surface, color, edge_color, text, unit, x, y, radius=8):
-        #     screen.blit(font_small.render(f"mass:{text:5.2f} {unit}", True, color), (40, H - 190))
-        #     py.draw.line(surface, color, (slider_start, H - 155), (slider_end, H - 155), 2)
-        #     py.draw.circle(surface, edge_color, mass_slider_center, 8)
-        #     py.draw.circle(surface, color, mass_slider_center, 5)
-        #     pass
 
+    
         screen.blit(font_small.render(f"mass:{mass:5.2f} kg", True, TEXT_C), (40, H - 190))
         py.draw.line(screen, (TEXT_C), (slider_start, H - 155), (slider_end, H - 155), 2)
         py.draw.circle(screen, (GROUND_EDGE), mass_slider_center, 8)
@@ -314,6 +312,8 @@ def main():
         ]
         for i, (value, color) in enumerate(info_list):
             screen.blit(font_small.render(value, True, color), (W - 260, H - 190 + i * 25))
+
+        screen.blit(spring_formula, (mid_point[0] - 20, mid_point[1] - 40))
         py.display.update()
     py.quit()
 
