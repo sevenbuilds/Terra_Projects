@@ -4,10 +4,10 @@ import math
 from sys import exit 
 
 W, H = 800, 600
-MASS = 1.0                       # 1kg
-DAMPING = 0.5                    # DAMPING force
+mass = 5.0                       # 1kg
+damping = 2.0                    # damping force
 G = 9.8                          # 9.8 m/s^2 (100pxl = 1m)
-STIFFNESS = 15.0                 # N/m
+stiffness = 100.0                 # N/m
 L0 = 300                         # rest length of spring in pxls
 SUBSTEPS = 20                    # calculate physcis 20 times in 1 frame.
 HEIGHT = 300
@@ -16,20 +16,29 @@ GROUND = 400
 MIN_LEN = 60
 MIN_POS = ANCHOR[0] + MIN_LEN
 EQ_X = 413
-MASS_SIZE = 100
+mass_SIZE = 100
+
+MAX_mass = 50.0
+MAX_stiffness = 500.0
+MAX_damping = 20.0
+
+MIN_mass = 1.0
+MIN_stiffness = 1.0
+MIN_damping = 1.0
 
 # colors
 white = (255,255,255)
 black = (0,0,0)
-SPRING_REST = (239, 159, 39)                # amber at rest
-SPRING_COMP = (55, 138, 221)                # blue when compressed
-SPRING_STRETCH = (226, 75, 74)              # red when stretched
+
 GROUND_C = (58, 58, 56)
 GROUND_EDGE = (136, 135, 128)
 SPRING_OUTLINE = (20, 20, 22)
 TEXT_C = (180, 178, 169)
 FORCE_SPRING = (175, 169, 236)              # lavender
 FORCE_DAMP = (237, 147, 177)                # pink
+SPRING_REST = (239, 159, 39)                # amber at rest
+SPRING_COMP = (55, 138, 221)                # blue when compressed
+SPRING_STRETCH = (226, 75, 74)              # red when stretched
 
 def reset():
     pos = 450.0
@@ -38,14 +47,14 @@ def reset():
 
 def calculate_forces(pos, vel):
     x = (pos - ANCHOR[0]) - L0
-    f_spring = -STIFFNESS * x
-    f_damping = -DAMPING * vel
+    f_spring = -stiffness * x
+    f_damping = -damping * vel
     net_force = f_spring + f_damping 
     return net_force, f_spring, f_damping
 
 def step(pos, vel, dt):
     f, _, _ = calculate_forces(pos, vel)
-    acceleration = f / MASS
+    acceleration = f / mass
     vel = vel + (acceleration * dt)
     pos = pos + (vel * dt)
     return pos, vel
@@ -85,7 +94,11 @@ def arrow(surface, color, start, dx, width=4):
     py.draw.line(surface, color, start, end, width)
     py.draw.polygon(surface, color, [end, (end[0] - 10 * s, end[1] + 7), (end[0] - 10 * s, end[1] - 7)])
     
+
 def main():
+    global mass
+    global stiffness
+    global damping
     py.init()
     screen = py.display.set_mode((W,H))
     title = py.display.set_caption("Horizontal spring simulation.")
@@ -93,15 +106,34 @@ def main():
     font_small = py.font.SysFont(("Consolas"),16) 
     font_big = py.font.SysFont(("Consolas"),32)
     m_font = font_big.render("m",True,(225, 245, 238))
+    m_value = font_small.render(f"{math.ceil(mass)}Kg", True, white)
     equilibrium_text = font_small.render("Equilibrium", True, TEXT_C)
+    hint = font_small.render("drag the mass | R reset | F forces | Esc quit", True, TEXT_C)
+
+    slider_start = 40
+    slider_end = 330
+    mass_slider_x = 69
+    stiffness_slider_x = 98
+    damping_slider_x = 69
+
+    mass_slider = False
+    stiffness_slider = False
+    damping_slider = False
 
     running = True
     show_forces = True
     dragging = False
     pos, vel = reset()
+
+    mass_slider_center = (mass_slider_x, H - 155)
+    stiffness_slider_center = (stiffness_slider_x, H - 95)
+    damping_slider_center = (damping_slider_x, H - 35)
+
+    slider_len = np.linalg.norm([[40, H - 95] - np.array([330, H - 95])])
+    
     while running:
         frame_dt = min(1/30, clock.tick(60) / 1000.0)
-        mass_rect = py.Rect(int(pos), HEIGHT - (MASS_SIZE // 2), MASS_SIZE, MASS_SIZE)
+        mass_rect = py.Rect(int(pos), HEIGHT - (mass_SIZE // 2), mass_SIZE, mass_SIZE)
         for e in py.event.get():
             if e.type == py.QUIT:
                 running = False
@@ -115,14 +147,59 @@ def main():
                 elif e.key == py.K_r:
                     pos, vel = reset()
                     dragging = False
+
+                    mass = 5.0
+                    stiffness = 100.0
+                    damping = 2.0
+                    mass_slider_x = 69
+                    stiffness_slider_x = 98
+                    damping_slider_x = 69
+
+                    mass_slider_center = (mass_slider_x, H - 155)
+                    stiffness_slider_center = (stiffness_slider_x, H - 95)
+                    damping_slider_center = (damping_slider_x, H - 35)
                 elif e.key == py.K_f:
                     show_forces = not show_forces
             elif e.type == py.MOUSEBUTTONDOWN:
                 mouse = e.pos
                 if np.linalg.norm(mouse - np.array([pos, HEIGHT])) < 110:
-                    dragging = True
+                    dragging = True  
+                elif np.linalg.norm(mouse - np.array([mass_slider_center])) < 20:
+                    mass_slider = True
+                elif np.linalg.norm([mouse - np.array([stiffness_slider_center])]) < 20:
+                    stiffness_slider = True
+                elif np.linalg.norm(mouse - np.array([damping_slider_center])) < 20:
+                    damping_slider = True
             elif e.type == py.MOUSEBUTTONUP:
                 dragging  = False
+                mass_slider = False
+                stiffness_slider = False
+                damping_slider = False
+
+        if mass_slider:
+            x, y =  py.mouse.get_pos()
+            mass_slider_x = max(slider_start, min(slider_end, x))
+            mass_slider_center = (mass_slider_x, mass_slider_center[1])
+            changed_len = np.linalg.norm([np.array([mass_slider_center]) - np.array([40, mass_slider_center[1]])])
+            scaler = round(changed_len / slider_len, 2)
+            mass = max(MIN_mass, min(MAX_mass * scaler, MAX_mass))
+
+        if stiffness_slider:
+            x, y = py.mouse.get_pos()
+            stiffness_slider_x = max(slider_start, min(slider_end, x))
+            stiffness_slider_center =  (stiffness_slider_x, H - 95)
+            changed_len = np.linalg.norm(np.array([stiffness_slider_center]) - np.array([40, H - 95]))
+            scaler = round(changed_len / slider_len, 2)
+            stiffness = max(MIN_stiffness, min(scaler * MAX_stiffness, MAX_stiffness))
+
+        if damping_slider:
+            x, y = py.mouse.get_pos()
+            damping_slider_x = max(slider_start, min(slider_end, x))
+            damping_slider_center = (damping_slider_x, damping_slider_center[1])
+            changed_len = np.linalg.norm([np.array([damping_slider_center] -  np.array([40, damping_slider_center[1]]))])
+            scaler = round(changed_len / slider_len, 2)
+            damping = max(MIN_damping, min(scaler * MAX_damping, MAX_damping))
+
 
         if dragging:
             vel = 0.0
@@ -167,7 +244,7 @@ def main():
         py.draw.aalines(screen, lerp_color(color, (255,255,255), 0.45), False, pts)
 
         #---- shadow ----
-        shadow = py.Surface((MASS_SIZE + 20, 16), py.SRCALPHA)
+        shadow = py.Surface((mass_SIZE + 20, 16), py.SRCALPHA)
         py.draw.ellipse(shadow, (0,0,0,90), shadow.get_rect())
         screen.blit(shadow, (pos - 7, HEIGHT + 45))
 
@@ -177,15 +254,45 @@ def main():
         py.draw.rect(screen, (32,86,69), (pos, HEIGHT - 49, 100, 100), 5, border_radius=10)
         start_pos = pos + 15, HEIGHT - 35
         end_pos =  pos + 85, HEIGHT - 35
+        border = py.Surface((W, H), py.SRCALPHA)
         fade_surface = py.Surface((W,H), py.SRCALPHA)
         py.draw.line(fade_surface, (255,255,255,75), start_pos, end_pos, 5)
         py.draw.circle(fade_surface, (255,255,255,75), start_pos, 2)
         py.draw.circle(fade_surface, (255,255,255,75), end_pos, 2)
+        py.draw.rect(border, (0,0,0,85), (0, 0, 260, 180), border_radius=20)
         screen.blit(fade_surface, (0,0))
-        screen.blit(m_font, (pos + 40, HEIGHT - 13))
+        screen.blit(border, (W - 300, H - 210))
+
+        #---- tuning slider ----
+        py.draw.rect(border,(0,0,0,85), (0,0, 350, 190), border_radius=20)
+        screen.blit(border, (20, H - 200))
+        # def draw_slidebar(surface, color, edge_color, text, unit, x, y, radius=8):
+        #     screen.blit(font_small.render(f"mass:{text:5.2f} {unit}", True, color), (40, H - 190))
+        #     py.draw.line(surface, color, (slider_start, H - 155), (slider_end, H - 155), 2)
+        #     py.draw.circle(surface, edge_color, mass_slider_center, 8)
+        #     py.draw.circle(surface, color, mass_slider_center, 5)
+        #     pass
+
+        screen.blit(font_small.render(f"mass:{mass:5.2f} kg", True, TEXT_C), (40, H - 190))
+        py.draw.line(screen, (TEXT_C), (slider_start, H - 155), (slider_end, H - 155), 2)
+        py.draw.circle(screen, (GROUND_EDGE), mass_slider_center, 8)
+        py.draw.circle(screen, (TEXT_C), mass_slider_center, 5)
+
+        screen.blit(font_small.render(f"stiffness: {stiffness:5.2f} ", True, TEXT_C), (40, H - 130))
+        py.draw.line(screen, (TEXT_C), (40, H - 95), (330, H - 95), 2)
+        py.draw.circle(screen, (GROUND_EDGE), stiffness_slider_center, 8)
+        py.draw.circle(screen, (TEXT_C), stiffness_slider_center, 5)
+
+        screen.blit(font_small.render(f"damping: {damping:5.2f} ", True, TEXT_C), (40, H - 70))
+        py.draw.line(screen, (TEXT_C), (40, H - 35), (330, H - 35), 2)
+        py.draw.circle(screen, (GROUND_EDGE), damping_slider_center, 8)
+        py.draw.circle(screen, (TEXT_C), damping_slider_center, 5)
 
         #---- show-forces ----
+        stretch = (pos - ANCHOR[0]) - L0
         _, f_spring, f_damping = calculate_forces(pos, vel)
+        KE = 0.5 * mass * vel**2
+        PE = 0.5 * stiffness * stretch**2
         if show_forces:
             center_x = mass_rect.centerx
             top = mass_rect.y
@@ -194,7 +301,19 @@ def main():
 
         #---- texts ----
         screen.blit(equilibrium_text, (EQ_X - 40, 370))
-
+        screen.blit(m_font, (pos + 40, HEIGHT - 13))
+        screen.blit(m_value, (pos + 35, HEIGHT + 20))
+        screen.blit(hint, (20, 20))
+        info_list = [
+            (f"x    {stretch:+9.5f} pxls", TEXT_C),
+            (f"v    {vel:+9.5f} pxls/s",TEXT_C),
+            (f"F_s  {f_spring:+9.5f}", FORCE_SPRING),
+            (f"F_d  {f_damping:+9.5f}", FORCE_DAMP),
+            (f"KE   {KE:9,.5f}", TEXT_C),
+            (f"PE   {PE:9,.5f}", TEXT_C)
+        ]
+        for i, (value, color) in enumerate(info_list):
+            screen.blit(font_small.render(value, True, color), (W - 260, H - 190 + i * 25))
         py.display.update()
     py.quit()
 
