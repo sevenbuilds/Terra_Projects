@@ -39,16 +39,15 @@ A horizontal spring-mass system is simulated using equations like,
 - **Potential energy of spring**: 0.5 * stiffness coeffcient * displacement^2
 
 ## 🚀 How to run:
-Option 1: Download the Executable (Recommended)
-```bash
+**Option 1**: Download the Executable (**Recommended**)
 1. Go to [Releases](https://github.com/sevenbuilds/Terra_Projects/releases/tag/v1.0.0) page.
 2. Download SpringMass.exe from the lastest release.
 3. Double-click the downloaded file so launch the simulation.
 4. If faced with "Windows protection" click more info down below.
 5. choose the option "Run anyway".
 6. Enjoy the simulation!
-```
-Option 2: Run from source
+---
+**Option 2**: Run from source
 if you want to run or modify the code:
 - you must have **Python 3.13**, **Pygame CE** and **Numpy**.
 
