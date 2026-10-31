@@ -40,6 +40,8 @@ FORCE_DAMP = (237, 147, 177)                # pink
 SPRING_REST = (239, 159, 39)                # amber at rest
 SPRING_COMP = (55, 138, 221)                # blue when compressed
 SPRING_STRETCH = (226, 75, 74)              # red when stretched
+Ruby_Red = (212, 106, 123)
+Sea_green = (126, 206, 173)
 
 def reset():
     pos = 450.0
@@ -174,8 +176,10 @@ def draw_displacement_graph(surface, rect, time_data, displacement_data):
 
 
 def draw_energy_graph(surface, rect, time_data, KE_data, PE_data, peak_energy):
+    #defines dimensions and starting point of rectangle
     x, y, width, height = rect
 
+    #draws rectangle in that place where our left border appears
     py.draw.rect(surface, (32, 32, 32), rect, border_radius=5)
 
     for i in range(1, 5):
@@ -184,10 +188,15 @@ def draw_energy_graph(surface, rect, time_data, KE_data, PE_data, peak_energy):
         gy = y + i * height // 5
         py.draw.line(surface, (65, 65, 65), (x, gy), (x + width, gy), 1)
 
+
+    # safty line we need at least points to draw a line or smt
     if len(time_data) < 2:
         return
 
+    #setting start_time so its never below 0 also [-1] means last element of the array
+    #so last element of the array should be greater than 10 other start-time will always be 0
     start_time = max(0, time_data[-1] - 10)
+    #multiplied by 1.1 because he always wanted 10% of the graph free for breathing space
     scale = peak_energy * 1.1
     baseline = y + height
 
@@ -205,9 +214,9 @@ def draw_energy_graph(surface, rect, time_data, KE_data, PE_data, peak_energy):
     pe_pts = to_points(PE_data)
 
     if len(pe_pts) > 1:
-        py.draw.lines(surface, FORCE_SPRING, False, pe_pts, 2)
+        py.draw.lines(surface, Sea_green, False, pe_pts, 2)
     if len(ke_pts) > 1:
-        py.draw.lines(surface, (100, 200, 255), False, ke_pts, 2)
+        py.draw.lines(surface, Ruby_Red, False, ke_pts, 2)
     
 def main():
     global mass
@@ -375,8 +384,6 @@ def main():
             while time_data and time_data[0] < elapsed_time - 10:
                 time_data.pop(0)
                 displacement_data.pop(0)
-
-            while (KE_data and KE_data[0] < elapsed_time - 10) and (PE_data and PE_data[0] < elapsed_time - 10):
                 KE_data.pop(0)
                 PE_data.pop(0)
 
@@ -473,9 +480,7 @@ def main():
         screen.blit(rotated_energy_text, (30, 65))
         screen.blit(time_text_e, (350 // 2 - 10, 155))
 
-        peak_energy = 1.0
-
-        peak_energy = max(peak_energy, KE + PE)
+        peak_energy = max(1.0, max(KE_data, default=0.0), max(PE_data, default=0.0))
 
         draw_energy_graph(
             screen,
@@ -518,8 +523,8 @@ def main():
             (f"v    {vel:+9.5f} pxls/s",TEXT_C),
             (f"F_s  {f_spring:+9.5f}", FORCE_SPRING),
             (f"F_d  {f_damping:+9.5f}", FORCE_DAMP),
-            (f"KE   {KE:9,.5f}", TEXT_C),
-            (f"PE   {PE:9,.5f}", TEXT_C)
+            (f"KE   {KE:9,.5f}", Ruby_Red),
+            (f"PE   {PE:9,.5f}", Sea_green)
         ]
         for i, (value, color) in enumerate(info_list):
             screen.blit(font_small.render(value, True, color), (W - 260, H - 190 + i * 25))

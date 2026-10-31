@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="assets/demo.gif" alt="Spring-mass simulation demo" width="700">
+  <img src="assets/demo.gif" alt="Spring-mass simulation demo" width="800" height="600">
 </p>
 
 ---
@@ -19,7 +19,7 @@
 
 This simulation lets user control **mass**, **stiffness coefficent** and **damping coefficent** in real time and lets them observer how each factor affect the oscilation of the spring, helping visual learners and teaching people how spring behaves.
 
-🎥 [Watch the video](https://github.com/sevenbuilds/Terra_Projects/issues/1)
+🎥 [Watch the video](https://github.com/sevenbuilds/Terra_Projects/issues/2)
 
 ## ✨ Features:
 - **Interactive**: you can interact with the system by dragging the mass
@@ -29,6 +29,8 @@ This simulation lets user control **mass**, **stiffness coefficent** and **dampi
 - **Force Visualization**: you can see which force in acting on which direction and with what magnitude
 - **Live calculation**: you can observe the values changing live in the right-bottom block
 - **Reset**: by pressing "R" you can restore the simulation inital state
+- **Displacement vs Time Graph**: shows graph betn displacement and time in real time using values generated at that time
+- **Energy vs Time Graph**: shows energy and time graph calculated using real time value
 
 ## 📐 Physics behind simulation:
 A horizontal spring-mass system is simulated using equations like,
@@ -43,8 +45,8 @@ A horizontal spring-mass system is simulated using equations like,
 1. Go to [Releases](https://github.com/sevenbuilds/Terra_Projects/releases/tag/v1.0.0) page.
 2. Download SpringMass.exe from the lastest release.
 3. Double-click the downloaded file so launch the simulation.
-4. If faced with "Windows protection" click more info down below.
-5. choose the option "Run anyway".
+4. If faced with "**Windows protection**" click **more info**.
+5. choose the option "**Run anyway**".
 6. Enjoy the simulation!
 ---
 **Option 2**: Run from source
