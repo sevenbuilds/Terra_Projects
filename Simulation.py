@@ -13,11 +13,12 @@ MIN_LEN = 60
 ANCHOR = np.array([113, HEIGHT])
 MIN_POS = ANCHOR[0] + MIN_LEN
 EQ_X = 413
+PIXELS_PER_METER = 100
 
 mass_SIZE = 100
-mass = 5.0                  
-damping = 2.0
-stiffness = 100.0                    
+mass = 5.0                           # kg
+damping = 2.0                        # Ns/m
+stiffness = 100.0                    # N/m
 
 MAX_mass = 50.0
 MAX_stiffness = 500.0
@@ -43,23 +44,35 @@ SPRING_STRETCH = (226, 75, 74)              # red when stretched
 Ruby_Red = (212, 106, 123)
 Sea_green = (126, 206, 173)
 
+def pxl_to_m(value):
+    return float(value) / PIXELS_PER_METER
+
+def m_to_pxl(value):
+    return float(value) * PIXELS_PER_METER
+
+def pxl_to_ms(value):
+    return float(value) /PIXELS_PER_METER
+
 def reset():
     pos = 450.0
     vel = 0.0
     return pos, vel
 
 def calculate_forces(pos, vel):
-    x = (pos - ANCHOR[0]) - L0
-    f_spring = -stiffness * x
-    f_damping = -damping * vel
+    displacement = pxl_to_m((pos - ANCHOR[0]) - L0)
+    velocity = pxl_to_ms(vel)
+    f_spring = -stiffness * displacement
+    f_damping = -damping * velocity
     net_force = f_spring + f_damping 
     return net_force, f_spring, f_damping
 
 def step(pos, vel, dt):
     f, _, _ = calculate_forces(pos, vel)
     acceleration = f / mass
-    vel = vel + (acceleration * dt)
-    pos = pos + (vel * dt)
+    velocity = pxl_to_ms(vel) + (acceleration * dt)
+    displacement = pxl_to_m(pos - ANCHOR[0]) + (velocity * dt)
+    vel = m_to_pxl(velocity)
+    pos = ANCHOR[0] + m_to_pxl(displacement)
     return pos, vel
 
 def spring_points(a, b, loop=7, coils=9, lead=0.10, width=20.0, samples= 240):
@@ -107,11 +120,8 @@ def arrow(surface, color, start, dx, width=4):
     )
 
 def draw_displacement_graph(surface, rect, time_data, displacement_data):
-
     x, y, width, height = rect
-
     py.draw.rect(surface, (32,32,32), rect, border_radius=5)
-
     for i in range(1,5):
         gx = x + i * width // 5
         py.draw.line(
@@ -121,7 +131,6 @@ def draw_displacement_graph(surface, rect, time_data, displacement_data):
             (gx, y + height),
             1
         )
-
     for i in range(1, 5):
         gy = y + i * height // 5
         py.draw.line(
@@ -131,21 +140,15 @@ def draw_displacement_graph(surface, rect, time_data, displacement_data):
             (x + width, gy),
             1
         )
-
     if len(time_data) < 2:
             return    
-
     end_time = time_data[-1]
     start_time = max(0, end_time - 10)
-
     max_displacement = max(
         abs(value) for value in displacement_data
     )
-
-    scale = max(20, max_displacement * 1.15)
-
+    scale = max(0.2, max_displacement * 1.15)
     center_y = y + height // 2
-
     py.draw.line(
         surface, 
         (140, 140, 140),
@@ -153,14 +156,10 @@ def draw_displacement_graph(surface, rect, time_data, displacement_data):
         (x + width, center_y),
         1
     )
-
     points = []
-
     for t, displacement in zip(time_data, displacement_data):
-
         if t < start_time:
             continue
-
         px = x + ((t - start_time) / 10) * width
         py_pos = center_y - (displacement / scale) * (height / 2)
         points.append((int(px), int(py_pos)))
@@ -173,7 +172,6 @@ def draw_displacement_graph(surface, rect, time_data, displacement_data):
             points,
             2
         )
-
 
 def draw_energy_graph(surface, rect, time_data, KE_data, PE_data, peak_energy):
     #defines dimensions and starting point of rectangle
@@ -358,9 +356,11 @@ def main():
 
         #---- energy calculation -----
         stretch = (pos - ANCHOR[0]) - L0
+        velocity = pxl_to_m(vel)
+        displacement = pxl_to_m(stretch)
         _, f_spring, f_damping = calculate_forces(pos, vel)
-        KE = 0.5 * mass * vel**2
-        PE = 0.5 * stiffness * stretch**2
+        KE = 0.5 * mass * velocity**2
+        PE = 0.5 * stiffness * displacement**2
 
         if dragging:
             vel = 0.0
@@ -377,7 +377,7 @@ def main():
 
             elapsed_time += frame_dt
             time_data.append(elapsed_time)
-            displacement_data.append(stretch)
+            displacement_data.append(pxl_to_m(stretch))
             KE_data.append(KE)
             PE_data.append(PE)
 
@@ -511,20 +511,20 @@ def main():
         if show_forces:
             center_x = mass_rect.centerx
             top = mass_rect.y
-            arrow(screen, FORCE_SPRING, (center_x, top - 20), max(-160,min(160, f_spring * 0.05)))
-            arrow(screen, FORCE_DAMP, (center_x, top - 38), max(-160,min(160, f_damping * 0.05)))
+            arrow(screen, FORCE_SPRING, (center_x, top - 20), max(-160,min(160, f_spring * 2)))
+            arrow(screen, FORCE_DAMP, (center_x, top - 38), max(-160,min(160, f_damping * 2)))
 
         #---- texts ----
         screen.blit(m_font, (pos + 40, HEIGHT - 13))
         screen.blit(m_value, (pos + 35, HEIGHT + 20))
         screen.blit(hint, (40, H - 230))
         info_list = [
-            (f"x    {stretch:+9.5f} pxls", TEXT_C),
-            (f"v    {vel:+9.5f} pxls/s",TEXT_C),
-            (f"F_s  {f_spring:+9.5f}", FORCE_SPRING),
-            (f"F_d  {f_damping:+9.5f}", FORCE_DAMP),
-            (f"KE   {KE:9,.5f}", Ruby_Red),
-            (f"PE   {PE:9,.5f}", Sea_green)
+            (f"x    {pxl_to_m(stretch):+9.5f} m", TEXT_C),
+            (f"v    {pxl_to_ms(vel):+9.5f} m/s",TEXT_C),
+            (f"F_s  {f_spring:+9.5f} N", FORCE_SPRING),
+            (f"F_d  {f_damping:+9.5f} N", FORCE_DAMP),
+            (f"KE   {KE:9,.5f} J", Ruby_Red),
+            (f"PE   {PE:9,.5f} J", Sea_green)
         ]
         for i, (value, color) in enumerate(info_list):
             screen.blit(font_small.render(value, True, color), (W - 260, H - 190 + i * 25))
